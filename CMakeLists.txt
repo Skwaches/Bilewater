@@ -20,6 +20,7 @@ set(executable bilehaven)
 add_executable(${executable}
 	src/input.cpp
 	src/main.cpp
+	src/fluid.cpp
 )
 
 target_include_directories(${executable} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include )

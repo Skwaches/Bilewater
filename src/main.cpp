@@ -4,6 +4,7 @@
 
 #include "init.h"
 #include "input.h"
+#include "fluid.h"
 
 typedef struct window_Info {
 	const char* title;
@@ -16,6 +17,9 @@ SDL_Window* window = NULL;
 window_Info bile = {"Bilewater", {800, 800}, SDL_WINDOW_RESIZABLE};
 SDL_AppResult APP_STATE = SDL_APP_CONTINUE;
 Inputs inputs;
+
+//Test fluid
+Fluid water;
 
 void render(SDL_Renderer* renderer){
 	SDL_CHECK(SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255));
@@ -44,10 +48,11 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 
 SDL_AppResult SDL_AppIterate(void *appstate){
 		render(renderer);
+		water.draw(renderer);
 		return APP_STATE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) //SDL handles cleanup for renderer and window
 { 
-
+	
 }
