@@ -1,5 +1,4 @@
 #pragma once
-
 #include <SDL3/SDL.h>
 #include <array>
 
@@ -25,4 +24,5 @@ class Inputs{
 		bool mouseReleased(int button);
 };
 
-void input(Inputs input);
+extern Inputs inputs;
+

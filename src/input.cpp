@@ -42,8 +42,6 @@ bool Inputs::isKeyClicked(SDL_Scancode key){
 bool Inputs::isKeyReleased(SDL_Scancode key){
 	return !keys[key] && pkeys[key];
 }
-
-
 bool Inputs::mouseClicked(int button){
 	return mouse[button] && !pmouse[button];
 }
@@ -54,11 +52,3 @@ bool Inputs::mouseReleased(int button){
 	return !mouse[button] && pmouse[button];
 }
 
-void input(Inputs input){
-	SDL_Event event;
-	while(SDL_PollEvent(&event)){
-		if(event.type == SDL_EVENT_QUIT)
-			RUNNING = false;
-		input.loadEvent(event);
-	}
-}

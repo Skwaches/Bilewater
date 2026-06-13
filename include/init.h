@@ -1,28 +1,9 @@
 #pragma once
-
 #include <SDL3/SDL.h>
-#include <string>
-extern bool RUNNING;
-
+extern SDL_AppResult APP_STATE;
 #define SDL_CHECK(expression)\
 	if(!expression){\
-		RUNNING = false;\
+		APP_STATE = SDL_APP_FAILURE;\
 		SDL_Log("SDL runtime error!\n%s: Line %i\n -> %s\n", __FILE__,__LINE__,SDL_GetError());\
 	}
-		
-		
-class Display{
-	public:
-		SDL_Window* window;
-		SDL_Renderer* renderer;
-		SDL_Point size;
-		Display(std::string title, int width, int height, SDL_WindowFlags flags);
-		void destroy(void);
-};
-
-void init();
-void render(Display& screen);
-void quit(Display& screen);
-
-
 

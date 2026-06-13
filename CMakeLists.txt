@@ -18,11 +18,10 @@ endif()
 set(executable bilehaven)
 
 add_executable(${executable}
-	src/init.cpp
 	src/input.cpp
 	src/main.cpp
-	src/render.cpp
 )
+
 target_include_directories(${executable} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include )
 target_link_libraries(${executable} PRIVATE SDL3::SDL3)
 	
