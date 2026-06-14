@@ -5,8 +5,8 @@
 typedef struct Particle{
 	float pressure = 0.0;
 	Vector2    position , 
-			   velocity , 
-			   acceleration = {0, 30};
+			   velocity = {-60, 0}, 
+			   acceleration = {6, 30};
 }Particle;
 
 class Fluid{
@@ -18,11 +18,14 @@ class Fluid{
 			, density = 1;
 		int size;
 		Circle circleMesh;
-		Fluid(
-				Vector2 dimensions = {10,5}, float radius = 10, Vector2 position = {20,20}, 
-				Vector2 spacing= {6,7}, int accuracy= 100, SDL_FColor color = {0.30, 0.1, 0.79, 1});
+		Fluid(  
+				Vector2 dimensions = {15,15}, float radius = 10, 
+				Vector2 position = {40,40}, Vector2 spacing= {40,40},
+				int accuracy= 100, SDL_FColor color = {0.30, 0.1, 0.79, 1});
+
 		void draw(SDL_Renderer* renderer);
 		void collisions(float dampingFactor = 0.6);
+		void naiveCollisions(float dampingFactor);
 		void update(float time);
 
 		//Pass all the particles through a function and do nothing.

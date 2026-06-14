@@ -39,10 +39,34 @@ void Fluid::draw(SDL_Renderer* renderer){
 	}
 };
 
-void particleCollisions(Particle A, Particle B){
+void particleCollision(Particle& A, Particle& B, float radius, float dampingFactor=0.6){
+	Vector2 displacement = A.position - B.position;
+	float distance = displacement.magnitude();
 	
+	if(distance == 0.0f){
+		displacement = {0.001f,0.0f};
+		distance = 0.001f;
+	}
+	float difference = distance - radius * 2;
+	if( difference < 0 ){
+		
+		Vector2 pushVector = (displacement/distance) * (-difference/2.0f);
+		A.position += pushVector;
+		B.position -= pushVector;
+
+		Vector2 tmp = A.velocity;
+		A.velocity = B.velocity * dampingFactor;
+		B.velocity = tmp * dampingFactor;
+	}
 }
 
+void Fluid::naiveCollisions(float dampingFactor){
+	for(size_t i = 0; i < particles.size() - 1;i++){
+		for(size_t j = i + 1; j < particles.size();j++){
+			particleCollision(particles[i],particles[j], radius, dampingFactor);
+		}
+	}
+}
 
 void wallCollisions(Particle& particle, float dampingFactor = 0.6){
     // Left Wall
@@ -68,10 +92,12 @@ void wallCollisions(Particle& particle, float dampingFactor = 0.6){
     }
 }
 
-
 void Fluid::collisions(float dampingFactor){
-	auto wallColl = [dampingFactor](Particle& particle){wallCollisions(particle,dampingFactor);};
+	auto wallColl = [dampingFactor](Particle& particle){
+		wallCollisions(particle,dampingFactor);
+	};
 	this->pass(wallColl);
+	naiveCollisions(dampingFactor);
 }
 
 void Fluid::update(float time){
