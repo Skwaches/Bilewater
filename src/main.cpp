@@ -11,14 +11,21 @@
 SDL_Renderer* renderer = NULL;
 SDL_Window* window = NULL;
 
-window_Info WINDOW_INFO;
+window_Info WINDOW_INFO = {"Bilewater", {0, 0}, SDL_WINDOW_FULLSCREEN};
 SDL_AppResult APP_STATE = SDL_APP_CONTINUE;
 Uint64 previous = 0;
 Inputs inputs;
 bool firstFrame = true;
 
 //Test fluid
-Fluid water;
+Fluid water(
+	 {20,10}, //Dimensions
+	  10,      //Radius
+	 {40,10}, //Position
+	 {10,10}, //Spacing
+	  20, 	  //Accuracy
+	{230.0/255, 51.0/255, 179.0/255, 1}//rgba(230,52,179,1)
+);
 
 void render(SDL_Renderer* renderer){
 	SDL_CHECK(SDL_SetRenderDrawColor(renderer,0,0,0,1));
@@ -29,7 +36,6 @@ void render(SDL_Renderer* renderer){
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]){
 	SDL_SetAppMetadata("Bilewater", "1.0", "Fluid simulation");
-	WINDOW_INFO = {"Bilewater", {0, 0}, SDL_WINDOW_FULLSCREEN};
 
 	SDL_CHECK(SDL_Init(SDL_INIT_VIDEO));
 

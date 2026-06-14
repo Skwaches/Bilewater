@@ -75,33 +75,33 @@ void Fluid::naiveCollisions(float dampingFactor){
 	}
 }
 
-void wallCollisions(Particle& particle, float dampingFactor = 1){
+void wallCollisions(Particle& particle, float radius, float dampingFactor = 1){
     // Left Wall
-    if(particle.position.x <= 0) {
-        particle.position.x = 0; 
+    if(particle.position.x <= radius) {
+        particle.position.x = radius; 
         particle.velocity.x *= -dampingFactor;
     }
     // Right Wall
-    else if(particle.position.x >= WINDOW_INFO.size.x) {
-        particle.position.x = WINDOW_INFO.size.x;
+    else if(particle.position.x + radius >= WINDOW_INFO.size.x) {
+        particle.position.x = WINDOW_INFO.size.x - radius;
         particle.velocity.x *= -dampingFactor;
     }
 
     // Top Wall
-    if(particle.position.y <= 0) {
-        particle.position.y = 0; 
+    if(particle.position.y <= radius) {
+        particle.position.y = radius; 
         particle.velocity.y *= -dampingFactor;
     }
     // Bottom Wall
-    else if(particle.position.y >= WINDOW_INFO.size.y) {
-        particle.position.y = WINDOW_INFO.size.y;
+    else if(particle.position.y + radius >= WINDOW_INFO.size.y) {
+        particle.position.y = WINDOW_INFO.size.y - radius;
         particle.velocity.y *= -dampingFactor;
     }
 }
 
 void Fluid::collisions(float dampingFactor){
-	auto wallColl = [dampingFactor](Particle& particle){
-		wallCollisions(particle,dampingFactor);
+	auto wallColl = [this,dampingFactor](Particle& particle){
+		wallCollisions(particle,radius, dampingFactor);
 	};
 	this->pass(wallColl);
 	naiveCollisions(dampingFactor);
