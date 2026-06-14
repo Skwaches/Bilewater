@@ -1,22 +1,12 @@
 #pragma once
-#include <SDL3/SDL.h>
-#include <vector>
-
-class Circle{
-	public:
-		SDL_FPoint center = {0,0};
-		float radius = 0; 
-		std::vector<SDL_Vertex> vertices;
-		std::vector<int> indices;
-		Circle(SDL_FPoint center={0,0}, float radius= 10, int accuracy=50, SDL_FColor color = {0.3,0.56,0.45, 1});
-};
+#include "circle.h"
+#include "vector2.h"
 
 typedef struct Particle{
 	float pressure = 0.0;
-	SDL_FPoint position = {0,0}, 
-			   velocity = {0,0}, 
-			   acceleration = {0,0};
-	Circle circle = Circle();
+	Vector2    position , 
+			   velocity , 
+			   acceleration = {0, 30};
 }Particle;
 
 class Fluid{
@@ -26,10 +16,21 @@ class Fluid{
 		float radius = 2
 			, viscosity = 1
 			, density = 1;
-
+		int size;
+		Circle circleMesh;
 		Fluid(
-				SDL_Point dimensions = {10,10}, float radius = 10, SDL_FPoint position = {20,20}, 
-				SDL_FPoint spacing= {6,7}, int accuracy= 50, SDL_FColor color = {1.30, 1.1, 1.79, 1});
+				Vector2 dimensions = {10,5}, float radius = 10, Vector2 position = {20,20}, 
+				Vector2 spacing= {6,7}, int accuracy= 100, SDL_FColor color = {0.30, 0.1, 0.79, 1});
 		void draw(SDL_Renderer* renderer);
+		void collisions(float dampingFactor = 0.6);
+		void update(float time);
+
+		//Pass all the particles through a function and do nothing.
+		template<typename Func>
+			void pass(Func fn){
+				for(auto& particle:particles)
+						fn(particle);
+			}
+
 };
 
