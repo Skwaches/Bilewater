@@ -19,7 +19,7 @@ class Fluid{
 		int size;
 		Circle circleMesh;
 		Fluid(  
-				Vector2 dimensions = {15,15}, float radius = 10, 
+				Vector2 dimensions = {15,15}, float radius = 4, 
 				Vector2 position = {40,40}, Vector2 spacing= {40,40},
 				int accuracy= 100, SDL_FColor color = {0.30, 0.1, 0.79, 1});
 

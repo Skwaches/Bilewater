@@ -41,11 +41,18 @@ void Fluid::draw(SDL_Renderer* renderer){
 
 void particleCollision(Particle& A, Particle& B, float radius, float dampingFactor=0.6){
 	Vector2 displacement = A.position - B.position;
+	if(displacement.x == 0.0f && displacement.y != 0.0f){
+		float jitter = (SDL_randf() - 0.5f) * 0.2f;
+		displacement.x += jitter;
+	}
 	float distance = displacement.magnitude();
 	
 	if(distance == 0.0f){
-		displacement = {0.001f,0.0f};
-		distance = 0.001f;
+		displacement = {
+			(SDL_randf() - 0.5f),
+			(SDL_randf() - 0.5f)
+		};
+		distance = displacement.magnitude();
 	}
 	float difference = distance - radius * 2;
 	if( difference < 0 ){
@@ -68,7 +75,7 @@ void Fluid::naiveCollisions(float dampingFactor){
 	}
 }
 
-void wallCollisions(Particle& particle, float dampingFactor = 0.6){
+void wallCollisions(Particle& particle, float dampingFactor = 1){
     // Left Wall
     if(particle.position.x <= 0) {
         particle.position.x = 0; 
