@@ -1,5 +1,4 @@
 #include "input.h"
-#include "init.h"
 
 void Inputs::newFrame(){
 	pkeys = keys;
@@ -22,11 +21,13 @@ void Inputs::loadEvent(const SDL_Event& event){
 			break;
 
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
-			mouse[event.button.button] = true;
+			if(event.button.button < mouse.size())
+				mouse[event.button.button] = true;
 			break;
-
+		
 		case SDL_EVENT_MOUSE_BUTTON_UP:
-			mouse[event.button.button] = false;
+			if(event.button.button < mouse.size())
+				mouse[event.button.button] = false;
 			break;
 		default:
 			break;

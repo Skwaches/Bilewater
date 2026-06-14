@@ -19,12 +19,13 @@ bool firstFrame = true;
 
 //Test fluid
 Fluid water(
-	 {20,10}, //Dimensions
-	  10,      //Radius
-	 {40,10}, //Position
-	 {10,10}, //Spacing
-	  20, 	  //Accuracy
-	{230.0/255, 51.0/255, 179.0/255, 1}//rgba(230,52,179,1)
+	 {50,20}, //Dimensions
+	  5,      //Radius
+	 {30,50}, //Position
+	 {30,40}, //Spacing
+	 20, 	  //Accuracy
+	{230.0/255, 51.0/255, 179.0/255, 1},//rgba(230,52,179,1)
+	{30, 30}  //Grid size for collisions
 );
 
 void render(SDL_Renderer* renderer){
@@ -81,7 +82,7 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 		float delay = (current - previous)/1000'000'000.0f;
 	 	previous = current;
 
-		if(delay > 0.25f)
+		if(delay > 0.25f) //Slow down the simulation if it's too slow. 
 			delay = 0.25f;
 
 		unprocessedTime += delay;
@@ -92,6 +93,7 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 			}
 			unprocessedTime -= TIME;
 		}
+		
 		render(renderer);
 		return APP_STATE;
 }

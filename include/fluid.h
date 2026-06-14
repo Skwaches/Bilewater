@@ -16,16 +16,27 @@ class Fluid{
 		float radius = 2
 			, viscosity = 1
 			, density = 1;
-		int size;
 		Circle circleMesh;
+		std::vector<int> indices;
+		std::vector<SDL_Vertex> vertices;
+		
+		//This is an attempt to optimise collision checking
+		Vector2 gridDimensions;
+		std::vector< std::vector< std::vector <int>>> grid; 
+		std::vector< std::vector< std::vector <SDL_Point> > > gridMappings;
+
+		
 		Fluid(  
 				Vector2 dimensions = {15,15}, float radius = 4, 
 				Vector2 position = {40,40}, Vector2 spacing= {40,40},
-				int accuracy= 100, SDL_FColor color = {0.30, 0.1, 0.79, 1});
+				int accuracy= 100, SDL_FColor color = {0.30, 0.1, 0.79, 1}
+				,SDL_Point gridSize = {20, 20}
+				);
 
 		void draw(SDL_Renderer* renderer);
 		void collisions(float dampingFactor = 0.6);
 		void naiveCollisions(float dampingFactor);
+		void gridCollisions(float dampingFactor);
 		void update(float time);
 
 		//Pass all the particles through a function and do nothing.
