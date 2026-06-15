@@ -53,3 +53,6 @@ bool Inputs::mouseReleased(int button){
 	return !mouse[button] && pmouse[button];
 }
 
+SDL_Point Inputs::cursor(){
+	return mousePosition;
+}

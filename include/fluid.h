@@ -11,9 +11,9 @@ typedef struct ParticleConfiguration{
 			  radius = 3;
 
 		Vector2    position = {0, 0}, 
-				   velocity = {0, 0}, 
-				   acceleration = {0, 10},
-				   gradient = {0,0};
+				   velocity = {0, -20}, 
+				   gradient = {0,0},
+				   gravity = {0, 30};
 		;
 				   
 }ParticleConfiguration;
@@ -29,8 +29,8 @@ class Particle{
 
 		Vector2    position, 
 				   velocity, 
-				   acceleration,
-				   gradient;
+				   gradient,
+				   gravity;
 
 		Particle(ParticleConfiguration config):
 		pressure(config.pressure),
@@ -41,7 +41,7 @@ class Particle{
 		radius(config.radius),
 		position(config.position),
 		velocity(config.velocity),
-		acceleration(config.acceleration),
+		gravity(config.gravity),
 		gradient(config.gradient){}
 
 		void update(float time);
@@ -121,5 +121,6 @@ class Fluid{
 		void updatePressure();
 		void updateGradient();
 		void updateGrid(); 
+		void focus(float force, float range, Vector2 point, float time);
 };
 

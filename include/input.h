@@ -22,6 +22,8 @@ class Inputs{
 		bool mouseClicked(int button);
 		bool mouseHeld(int button);
 		bool mouseReleased(int button);
+
+		SDL_Point cursor();
 };
 
 extern Inputs inputs;

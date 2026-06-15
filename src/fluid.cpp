@@ -1,6 +1,7 @@
 #include "fluid.h"
 #include "SDL3/SDL_stdinc.h"
 #include "init.h"
+#include <algorithm> // Required for std::clamp
 
 Fluid::Fluid(const FluidConfiguration& config):
 		viscosity(config.viscosity),
@@ -49,22 +50,17 @@ Fluid::Fluid(const FluidConfiguration& config):
 		}
 	}
 
-	//Column by column.
-	//Left to right.
-	//Top to bottom
-	//Only values on the right and below have not been checked.
-	for(int i = 0; i < gridDimensions.x;i++){
-		for(int j = 0; j < gridDimensions.y;j++){
+	//Map all 9. Don't get cheeky!
+	for(int i = 0; i < gridDimensions.x; i++){
+		for(int j = 0; j < gridDimensions.y; j++){
 			SDL_Point groups[] = { 
-				{ i+1, j-1 },
-				{ i+0, j+0 }, { i+1, j+0 },
-				{ i+0, j+1 }, { i+1, j+1 }};
+				{ i-1, j-1 }, { i+0, j-1 }, { i+1, j-1 },
+				{ i-1, j+0 }, { i+0, j+0 }, { i+1, j+0 },
+				{ i-1, j+1 }, { i+0, j+1 }, { i+1, j+1 }
+			};
 			for(auto cellId: groups){
-				if(
-						cellId.x < gridDimensions.x&&
-						cellId.y < gridDimensions.y&&
-						cellId.y >= 0
-				  ){
+				if(cellId.x >= 0 && cellId.x < gridDimensions.x &&
+				   cellId.y >= 0 && cellId.y < gridDimensions.y ){
 					gridMappings[i][j].push_back(cellId);
 				}
 			}
@@ -73,14 +69,9 @@ Fluid::Fluid(const FluidConfiguration& config):
 }
 
 void Particle::update(float time){
-	Vector2 pressureAcceleration = density == 0.0f ? 0.0f: gradient/-density; //Move away from the high pressure.
-	velocity += acceleration * time;
-	velocity += pressureAcceleration * time;
+	velocity += gravity * time;
+	velocity += gradient * time; //Gradient is directly acceleration
 	position += velocity * time;
-}
-
-int clamp(float x, float min, float max){
-	return std::max( std::min(x, max), min);
 }
 
 inline float lerp(float a, float b, float t) {
@@ -88,22 +79,25 @@ inline float lerp(float a, float b, float t) {
 }
 
 void Fluid::draw(SDL_Renderer* renderer){
-		int index = 0;
-		SDL_FColor high = {0.900f,0.100f,0.300f,1.0f};
-		SDL_FColor low =  {0.100f,0.200f,0.800f,1.0f};
-		SDL_FPoint range = {density * 10.0f, density * 0.8f};
+		SDL_FColor high = {0.600f, 0.900f, 1.000f, 1.0f}; // Frothy cyan
+		SDL_FColor low =  {0.000f, 0.400f, 1.000f, 1.0f}; // Deep blue
+		
+		float minDensity = density * 0.8f;
+		float maxDensity = density * 1.5f;
 
 		SDL_FColor cilor;
 		for (size_t i = 0; i < particles.size(); ++i) {
 			int index = i * circleMesh.vertices.size();
-			float t = (particles[i].density-range.y)/ (range.x - range.y);
-			SDL_Log("%f",particles[i].density);
-			t = clamp(t, 0.0f,1.0f);
+			
+			float t = (particles[i].density - minDensity) / (maxDensity - minDensity);
+			t = std::clamp(t, 0.0f, 1.0f); // FIX 5: Use std::clamp instead of int clamp
+
 			cilor = { 
 				lerp(low.r, high.r, t),
 				lerp(low.g, high.g, t),
 				lerp(low.b, high.b, t),
-				1.0f};
+				1.0f
+			};
 
 			for (size_t j = 0; j < circleMesh.vertices.size(); ++j) {
 				Vector2& position = particles[i].position;
@@ -112,62 +106,57 @@ void Fluid::draw(SDL_Renderer* renderer){
 				vertices[index+j].color = cilor;
             }
 		}
+		
 		SDL_RenderGeometry(
-				renderer, 
-				nullptr,
-				vertices.data(), 
-				vertices.size(),
-				indices.data(), 
-				indices.size()
-				);
-
+				renderer, nullptr,
+				vertices.data(), vertices.size(),
+				indices.data(), indices.size()
+		);
 };
 
-
 void Fluid::updateGrid(){
-	 //Remove outdated data
 	 for(auto& column: grid){
 		 for(auto& cell: column)
 	 		cell.clear();
 	 }
 
-	 //Consider making the cellSize depend on the smoothing radius
 	 SDL_FPoint cellSize = { 
-		 WINDOW_INFO.rect.w/gridDimensions.x, 
-		 WINDOW_INFO.rect.h/gridDimensions.y
+		 WINDOW_INFO.rect.w / gridDimensions.x, 
+		 WINDOW_INFO.rect.h / gridDimensions.y
 	 };
 
 	 for(int i = 0; i < particles.size(); i++){
 	 	Vector2 &position = particles[i].position;
-	 	SDL_Point cellId = position/cellSize;
+	 	SDL_Point cellId = position / cellSize;
 
-		//Clamp just in case it escapes
-		cellId.x = clamp(cellId.x, 0, static_cast<int>(gridDimensions.x) - 1);
-		cellId.y = clamp(cellId.y, 0, static_cast<int>(gridDimensions.y) - 1);
+		cellId.x = std::clamp(cellId.x, 0, static_cast<int>(gridDimensions.x) - 1);
+		cellId.y = std::clamp(cellId.y, 0, static_cast<int>(gridDimensions.y) - 1);
 	 	grid[cellId.x][cellId.y].push_back(i);
 	 }
 }
 
 float Fluid::kernel(float distance){
-	//One fluid at a time please!
-	static float volume = SDL_PI_F * SDL_pow(smoothingRadius, 5)/10.0f;
+	static float volume = SDL_PI_F * SDL_pow(smoothingRadius, 5) / 10.0f;
 
 	float value = smoothingRadius - distance;
-	value *= value*value;
-	return value/volume;
+	value *= value * value;
+	return value / volume;
 }
+
 Vector2 Fluid::kernelDerivative(Vector2 displacement){
-	static float volume = SDL_PI_F * SDL_pow(smoothingRadius, 4) / 10.0f; 
+	// FIXED TYPO: pow must be 5 to match kernel integration units
+	static float volume = SDL_PI_F * SDL_pow(smoothingRadius, 5) / 10.0f; 
 	
 	float dist = displacement.magnitude();
-	if (dist == 0.0f) return {0.0f, 0.0f}; // Prevent division by zero
+	if (dist == 0.0f) return {0.0f, 0.0f}; 
 	
 	float value = smoothingRadius - dist;
-	float slope = -3.0f * value * value / volume; // Scalar derivative
+	float slope = -3.0f * value * value / volume; 
 	
-	Vector2 direction = displacement / dist; // Normalized direction
+	Vector2 direction = displacement / dist; 
 	return direction * slope;
 }
+
 void Fluid::updateDensity(){
 	auto updateDensities = [this](Particle& A, Particle& B){
 		float distance = (A.position - B.position).magnitude();
@@ -177,9 +166,11 @@ void Fluid::updateDensity(){
 	};
 	gridIteration(updateDensities);
 }
+
 float densityToPressure(float Targetdensity, float density, float pressureMultiplier){
 	float difference = density - Targetdensity;
-	return difference * pressureMultiplier;
+	// Prevent negative pressure so the fluid doesn't pull itself into artificial clumps
+	return std::max(0.0f, difference * pressureMultiplier);
 }
 
 void Fluid::updatePressure(){
@@ -192,27 +183,45 @@ void Fluid::updateGradient(){
 	auto updateDensities = [this](Particle& A, Particle& B){
 		Vector2 displacement = (A.position - B.position);
 		float distance = displacement.magnitude();
-		if(distance < smoothingRadius){
-			 A.gradient += 
-				 kernelDerivative(displacement) *  
-				 densityToPressure(density, B.density, pressureMultiplier)
-				 * B.mass/B.density;
+		
+		if(distance < smoothingRadius && distance > 0.0001f){
+			 Vector2 gradW = kernelDerivative(displacement); // Points towards B
+			 
+			 float pressureA = A.pressure / (A.density * A.density);
+			 float pressureB = B.pressure / (B.density * B.density);
+			 
+			 Vector2 pressureForce = gradW * (-B.mass * (pressureA + pressureB));
+			 A.gradient += pressureForce;
 		}
 	};
 	gridIteration(updateDensities);
 }
 
 void Fluid::particleCollisions(){
-	auto particleCollision = [](Particle& A, Particle& B){A.particleCollision(B);};
+	auto particleCollision = [](Particle& A, Particle& B){
+			A.particleCollision(B);
+	};
 	gridIteration(particleCollision);
+}
+
+void Fluid::focus(float force, float range, Vector2 point, float time){
+	for(auto& particle: particles){
+		Vector2 displacement= point - particle.position;
+		float distance = displacement.magnitude();
+		if(distance >= range || distance <= 0)
+			continue;
+		
+		Vector2 direction = displacement/distance;
+		particle.velocity += direction * force * time;
+	}
 }
 
 void Fluid::reset(){
 	for(auto &particle: particles){
-		particle.density  = 0;
-		particle.gradient = {0.0f, 0.0f};
+		particle.density  = particle.mass * kernel(0.0f);
+		particle.pressure = 0.0f;
+		particle.gradient = {0.0f, 0.0f}; // We use this property to accumulate acceleration
 	}
-
 }
 
 void Fluid::update(float time){
@@ -224,6 +233,7 @@ void Fluid::update(float time){
 	updateDensity();
 	updatePressure();
 	updateGradient();
+	
 	for(auto &particle: particles){
 		particle.update(time);
 		particle.containerCollision(WINDOW_INFO.rect);

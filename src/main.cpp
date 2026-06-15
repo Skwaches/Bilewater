@@ -13,7 +13,7 @@ SDL_Window* window = NULL;
 
 window_Info WINDOW_INFO = {
 	.title = "Bilewater",
-	.rect = {.w = 1000, .h = 1000},
+	.rect = {.w = 800, .h = 800},
 	.flag = SDL_WINDOW_RESIZABLE
 };
 
@@ -25,17 +25,19 @@ bool firstFrame = true;
 //Test fluid
 Fluid water({
 		.viscosity = 1.0f,
-		.density = 1000.0f,
-		.pressureMultiplier = 1.0f,
-		.smoothingRadius = 24.0f,
+		.density = 3.0f,
+		.pressureMultiplier = 3.0f,
+		.smoothingRadius = 20.0f,
 
-		.random = true,
+		.radius = 3,
+
+		.random = false,
 		.range =  {WINDOW_INFO.rect.w, WINDOW_INFO.rect.h},
 		.position = {50.0f, 50.0f},
 		.spacing = {10.0f,10.0f},	
 
-		.dimensions	{30,30},	
-		.gridSize = {30, 30},
+		.dimensions	{50,50},	
+		.gridSize = {50, 50},
 
 		.accuracy = 12,
 		.color = {0.0f, 0.4f, 1.0f, 1.0f},
@@ -88,7 +90,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 }
 
 float unprocessedTime = 0;
-const int SUBSTEPS = 3;
+const int SUBSTEPS = 1;
 const float SUB_TIME = TIME/SUBSTEPS;
 SDL_AppResult SDL_AppIterate(void *appstate){
 		firstFrame = false;//FIXME This is a shitty work around
@@ -103,6 +105,13 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 		unprocessedTime += delay;
 		while (unprocessedTime >= TIME){
 			for(int i = 0; i < SUBSTEPS; i++){
+
+				float force = 500, range= 300;
+				if(inputs.mouseHeld(1))
+					water.focus(force, range, inputs.cursor(), SUB_TIME);
+				else if(inputs.mouseHeld(3))
+					water.focus(-force, range, inputs.cursor(), SUB_TIME);
+
 				water.update(SUB_TIME);
 			}
 			unprocessedTime -= TIME;
