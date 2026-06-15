@@ -1,28 +1,27 @@
 #include "fluid.h"
 #include "init.h"
 
-Fluid::Fluid(
-		Vector2 dimensions, float radius,
-		Vector2 position, Vector2 spacing, 
-		int accuracy, SDL_FColor color,
-		SDL_Point gridSize):
-	radius(radius), color(color),
-	circleMesh({0,0}, radius, accuracy, color),
-	gridDimensions(gridSize.x,gridSize.y),
-	grid(gridSize.x, std::vector< std::vector<int> >(gridSize.y, std::vector<int>() )), 
-	gridMappings(gridSize.x, std::vector< std::vector <SDL_Point> >(gridSize.y, std::vector<SDL_Point>())),
-	vertices(dimensions.x * dimensions.y * circleMesh.vertices.size(), {.position = {0,0}, .color = color})
-{ 
+Fluid::Fluid(const FluidConfiguration& config):
+		radius(config.radius),
+		density(config.density),
+		friction(config.friction),
+		restitution(config.restitution),
+		color(config.color),
+		circleMesh({0,0}, config.radius, config.accuracy, config.color),
+		gridDimensions(config.gridSize.x,config.gridSize.y),
+		grid(config.gridSize.x, std::vector< std::vector<int> >(config.gridSize.y, std::vector<int>() )), 
+		gridMappings(config.gridSize.x, std::vector< std::vector <SDL_Point> >(config.gridSize.y, std::vector<SDL_Point>())),
+		vertices(config.dimensions.x * config.dimensions.y * circleMesh.vertices.size(), {.position = {0,0}, .color = config.color})
+		{ 
+			Vector2 cell;
+			cell +=  config.spacing + radius * 2;
 
-	Vector2 cell;
-	cell +=  spacing + radius * 2;
-
-	int index = 0;
+			int index = 0;
 	Particle particle;
-	for(int i = 0; i < dimensions.x; i++){
-		for(int j = 0; j < dimensions.y; j++){
+	for(int i = 0; i < config.dimensions.x; i++){
+		for(int j = 0; j < config.dimensions.y; j++){
 			Vector2 coord(i, j);
-			particle.position = position + cell * coord;
+			particle.position = config.position + cell * coord;
 			particles.push_back(particle);
 			int offset = index * circleMesh.vertices.size();
 			for(auto id: circleMesh.indices){
@@ -78,7 +77,10 @@ void Fluid::draw(SDL_Renderer* renderer){
 
 };
 
-void particleCollision(Particle& A, Particle& B, float radius, float dampingFactor=0.6){
+void particleCollision(
+		Particle& A, Particle& B, 
+		float radius, float restitution=0.6, 
+		float friction=0.1){
 	Vector2 displacement = A.position - B.position;
 	if(displacement.x == 0.0f && displacement.y != 0.0f){
 		float jitter = (SDL_randf() - 0.5f) * 0.2f;
@@ -96,34 +98,32 @@ void particleCollision(Particle& A, Particle& B, float radius, float dampingFact
 	float difference = distance - radius * 2;
 	if( difference < 0 ){
 		Vector2 normal = displacement/distance;
+		Vector2 tangent = { normal.y, -normal.x };
 		
 		Vector2 pushVector = normal * (-difference/2.0f);
 		A.position += pushVector;
 		B.position -= pushVector;
 		
 		Vector2 relative_Velocity = A.velocity - B.velocity;
-		float normalComponent = relative_Velocity.dot(normal);
 
-		float j = -(1.0f + dampingFactor) * (normalComponent/2.0f);
+		float normalComponent = relative_Velocity.dot(normal);
+		float tangentComponent = relative_Velocity.dot(tangent);
+
+		//Sliding Friction
+		Vector2 impulse =  tangent * ( tangentComponent/2.0f) * friction;
+
+		//Elastic Collision
+		impulse += (normal * normalComponent) * restitution;
 
 		if(normalComponent > 0)
 			return;
 
-		Vector2 impulse = normal * j;
-		A.velocity += impulse;
-		B.velocity -= impulse;
+		A.velocity -= impulse;
+		B.velocity += impulse;
 	}
 }
 
-void Fluid::naiveCollisions(float dampingFactor){
-	for(size_t i = 0; i < particles.size() - 1;i++){
-		for(size_t j = i + 1; j < particles.size();j++){
-			particleCollision(particles[i],particles[j], radius, dampingFactor);
-		}
-	}
-}
-
-void Fluid::gridCollisions(float dampingFactor){
+void Fluid::gridCollisions(){
 	for(int i = 0; i < gridDimensions.x;i++)
 		for(int j = 0; j < gridDimensions.y;j++)
 			for(auto& A_id: grid[i][j])
@@ -131,42 +131,64 @@ void Fluid::gridCollisions(float dampingFactor){
 					for(auto& B_id: grid[neighbors.x][neighbors.y]){
 						if(A_id == B_id)
 							continue;
-						particleCollision(particles[A_id], particles[B_id], radius,dampingFactor);
+						particleCollision(
+								particles[A_id], particles[B_id], 
+								radius,restitution, friction);
 					}
 }
 
-void wallCollisions(Particle& particle, float radius, float dampingFactor = 1){
-    // Left Wall
-    if(particle.position.x <= radius) {
-        particle.position.x = radius; 
-        particle.velocity.x *= -dampingFactor;
-    }
-    // Right Wall
-    else if(particle.position.x + radius >= WINDOW_INFO.size.x) {
-        particle.position.x = WINDOW_INFO.size.x - radius;
-        particle.velocity.x *= -dampingFactor;
-    }
+//NOTE! The value of offset must be relative to the direction of the normal
+void wallCollision(
+		Particle& particle, float radius, 
+		Vector2 normal, float offset, 
+		float restitution, float friction){
 
-    // Top Wall
-    if(particle.position.y <= radius) {
-        particle.position.y = radius; 
-        particle.velocity.y *= -dampingFactor;
-    }
-    // Bottom Wall
-    else if(particle.position.y + radius >= WINDOW_INFO.size.y) {
-        particle.position.y = WINDOW_INFO.size.y - radius;
-        particle.velocity.y *= -dampingFactor;
-    }
+	Vector2 tangent = { normal.y, -normal.x};
+	float distance = particle.position.dot(normal);
+	distance -= offset;
+	float normalComponent = particle.velocity.dot(normal); //Speed in the direction of the wall
+	float overlap = distance - radius;
+	if(
+			normalComponent < 0 &&
+			overlap <= 0) 
+	{
+		Vector2 impulse = normal * -normalComponent * restitution;
+
+		float tangentComponent = particle.velocity.dot(tangent);
+		impulse += tangent * tangentComponent * (1-friction);
+
+		particle.velocity = impulse; 
+		particle.position += overlap;
+	}
 }
 
-void Fluid::collisions(float dampingFactor){
-	auto wallColl = [this,dampingFactor](Particle& particle){
-		wallCollisions(particle,radius, dampingFactor);
+void windowEdge_Collisions(
+		Particle& particle, float radius,
+		float restitution = 1, float friction = 0.01){
+	auto wallBound = [&particle,radius,restitution,friction](Vector2 normal,float offset){
+		wallCollision(particle, radius, normal, offset, restitution, friction);
 	};
-	pass(wallColl);
-	gridCollisions(dampingFactor);
-	//naiveCollisions(dampingFactor);
 
+	// Left wall
+	wallBound({1,0},0);
+	
+    // Top Wall
+	wallBound({0,1},0);
+	
+	//Right Wall
+	wallBound( {-1,0}, -static_cast<float>(WINDOW_INFO.size.x));
+
+	//Bottom Wall
+	wallBound( {0,-1}, -static_cast<float>(WINDOW_INFO.size.y));
+}
+
+void Fluid::collisions(){
+
+	auto wallBound = [this](Particle& particle){
+		windowEdge_Collisions(particle, radius, restitution, friction);
+	};
+	pass(wallBound);
+	gridCollisions();
 }
 
 int clamp(int x, int min, int max){

@@ -9,13 +9,32 @@ typedef struct Particle{
 			   acceleration = {6, 30};
 }Particle;
 
+typedef struct FluidConfiguration{
+				float radius = 4.0f;
+				float density = 1.0f;
+				float friction = 0.01;
+				float restitution = 0.99f;
+
+				Vector2 position = {40.0f,40.0f};
+				Vector2 spacing= {40,40};
+
+				SDL_Point dimensions = {15,15};
+				SDL_Point gridSize = {20, 20};
+
+				int accuracy= 100;
+				SDL_FColor color = {0.30, 0.1, 0.79, 1};//rgba(51, 230, 179, 1) ;
+}FluidConfiguration;
+
 class Fluid{
 	public:
 		std::vector<Particle> particles;
-		SDL_FColor color;
-		float radius = 2
-			, viscosity = 1
-			, density = 1;
+		SDL_FColor color;		
+		float radius ,
+			  viscosity,
+			  density ,
+			  friction ,
+			  restitution;
+			            
 		Circle circleMesh;
 		std::vector<int> indices;
 		std::vector<SDL_Vertex> vertices;
@@ -26,17 +45,11 @@ class Fluid{
 		std::vector< std::vector< std::vector <SDL_Point> > > gridMappings;
 
 		
-		Fluid(  
-				Vector2 dimensions = {15,15}, float radius = 4, 
-				Vector2 position = {40,40}, Vector2 spacing= {40,40},
-				int accuracy= 100, SDL_FColor color = {0.30, 0.1, 0.79, 1}
-				,SDL_Point gridSize = {20, 20}
-				);
-
+		Fluid(const FluidConfiguration& config);
+		
 		void draw(SDL_Renderer* renderer);
-		void collisions(float dampingFactor = 0.6);
-		void naiveCollisions(float dampingFactor);
-		void gridCollisions(float dampingFactor);
+		void collisions();
+		void gridCollisions();
 		void update(float time);
 
 		//Pass all the particles through a function and do nothing.

@@ -11,22 +11,28 @@
 SDL_Renderer* renderer = NULL;
 SDL_Window* window = NULL;
 
-window_Info WINDOW_INFO = {"Bilewater", {0, 0}, SDL_WINDOW_FULLSCREEN};
+window_Info WINDOW_INFO = {"Bilewater", {600, 250}, SDL_WINDOW_ALWAYS_ON_TOP};
 SDL_AppResult APP_STATE = SDL_APP_CONTINUE;
 Uint64 previous = 0;
 Inputs inputs;
 bool firstFrame = true;
 
 //Test fluid
-Fluid water(
-	 {50,20}, //Dimensions
-	  5,      //Radius
-	 {30,50}, //Position
-	 {30,40}, //Spacing
-	 20, 	  //Accuracy
-	{230.0/255, 51.0/255, 179.0/255, 1},//rgba(230,52,179,1)
-	{30, 30}  //Grid size for collisions
-);
+Fluid water({
+		.radius = 3.0f,
+		.density = 1.0f,
+		.friction = 0.01f,
+		.restitution = 0.99f,
+
+		.position = {30.0f, 30.0f},
+		.spacing = {20.0f,20.0f},	
+
+		.dimensions	{20,40},	
+		.gridSize = {40, 40},
+
+		.accuracy = 50,
+		.color = {0.3f, 0.4f, 0.5f},
+		});
 
 void render(SDL_Renderer* renderer){
 	SDL_CHECK(SDL_SetRenderDrawColor(renderer,0,0,0,1));
@@ -46,10 +52,12 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]){
 				&window, &renderer));
 
 	previous = SDL_GetTicksNS();
-	SDL_DisplayID displayID = SDL_GetDisplayForWindow(window);
-	const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(displayID);
-	if(mode){
-		WINDOW_INFO.size = {mode->w,mode->h};
+	if(WINDOW_INFO.flag & SDL_WINDOW_FULLSCREEN){
+		SDL_DisplayID displayID = SDL_GetDisplayForWindow(window);
+		const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(displayID);
+		if(mode){
+			WINDOW_INFO.size = {mode->w,mode->h};
+		}
 	}
 	SDL_Log("%i, %i", WINDOW_INFO.size.x, WINDOW_INFO.size.y);
 	return APP_STATE;
@@ -73,7 +81,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 }
 
 float unprocessedTime = 0;
-const int SUBSTEPS = 3;
+const int SUBSTEPS = 2;
 const float SUB_TIME = TIME/SUBSTEPS;
 SDL_AppResult SDL_AppIterate(void *appstate){
 		firstFrame = false;//FIXME This is a shitty work around
@@ -88,7 +96,7 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 		unprocessedTime += delay;
 		while (unprocessedTime >= TIME){
 			for(int i = 0; i < SUBSTEPS; i++){
-				water.collisions(0.999f);
+				water.collisions();
 				water.update(SUB_TIME);
 			}
 			unprocessedTime -= TIME;
