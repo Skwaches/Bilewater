@@ -4,7 +4,7 @@ extern SDL_AppResult APP_STATE;
 
 typedef struct window_Info {
 	const char* title = "Maiden";
-	SDL_FRect rect = {0, 0, 300, 400};
+	SDL_FRect rect = {0, 0, 700, 400};
 	SDL_WindowFlags flag = SDL_WINDOW_BORDERLESS;
 }window_Info;
 

@@ -13,8 +13,8 @@ SDL_Window* window = NULL;
 
 window_Info WINDOW_INFO = {
 	.title = "Bilewater",
-	.rect = {.w = 400, .h = 600},
-	.flag =SDL_WINDOW_ALWAYS_ON_TOP
+	.rect = {.w = 1000, .h = 1000},
+	.flag = SDL_WINDOW_RESIZABLE
 };
 
 SDL_AppResult APP_STATE = SDL_APP_CONTINUE;
@@ -25,18 +25,20 @@ bool firstFrame = true;
 //Test fluid
 Fluid water({
 		.viscosity = 1.0f,
-		.density = 1.0f,
-		.pressureMultiplier = 20.0f,
-		.smoothingRadius = 10.0f,
+		.density = 1000.0f,
+		.pressureMultiplier = 1.0f,
+		.smoothingRadius = 24.0f,
 
-		.position = {30.0f, 30.0f},
-		.spacing = {20.0f,20.0f},	
+		.random = true,
+		.range =  {WINDOW_INFO.rect.w, WINDOW_INFO.rect.h},
+		.position = {50.0f, 50.0f},
+		.spacing = {10.0f,10.0f},	
 
-		.dimensions	{20,40},	
-		.gridSize = {40, 40},
+		.dimensions	{30,30},	
+		.gridSize = {30, 30},
 
-		.accuracy = 50,
-		.color = {0.3f, 0.4f, 0.5f},
+		.accuracy = 12,
+		.color = {0.0f, 0.4f, 1.0f, 1.0f},
 		});
 
 void render(SDL_Renderer* renderer){
@@ -53,7 +55,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]){
 
 	SDL_CHECK(SDL_CreateWindowAndRenderer(
 				WINDOW_INFO.title, WINDOW_INFO.rect.w,
-				WINDOW_INFO.rect.y, WINDOW_INFO.flag,
+				WINDOW_INFO.rect.h, WINDOW_INFO.flag,
 				&window, &renderer));
 
 	previous = SDL_GetTicksNS();
@@ -65,7 +67,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]){
 			WINDOW_INFO.rect.h = mode->h;
 		}
 	}
-	SDL_Log("%f, %f", WINDOW_INFO.rect.w, WINDOW_INFO.rect.h);
 	return APP_STATE;
 }
 
@@ -76,7 +77,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 	}
 	else if(event->type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED){
 		if(!firstFrame){
-			//FIXME This outputs 1x1 if the window is resized by the SDL_WINDOW_FULLSCREEN flag.
+		//FIXME This outputs 1x1 if the window is resized by the SDL_WINDOW_FULLSCREEN flag.
 		WINDOW_INFO.rect.w = event->window.data1;
 		WINDOW_INFO.rect.h = event->window.data2;
 	}
@@ -87,7 +88,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 }
 
 float unprocessedTime = 0;
-const int SUBSTEPS = 8;
+const int SUBSTEPS = 3;
 const float SUB_TIME = TIME/SUBSTEPS;
 SDL_AppResult SDL_AppIterate(void *appstate){
 		firstFrame = false;//FIXME This is a shitty work around

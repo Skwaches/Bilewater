@@ -12,7 +12,10 @@ typedef struct ParticleConfiguration{
 
 		Vector2    position = {0, 0}, 
 				   velocity = {0, 0}, 
-				   acceleration = {0, 30};
+				   acceleration = {0, 10},
+				   gradient = {0,0};
+		;
+				   
 }ParticleConfiguration;
 
 class Particle{
@@ -26,14 +29,20 @@ class Particle{
 
 		Vector2    position, 
 				   velocity, 
-				   acceleration;
+				   acceleration,
+				   gradient;
 
 		Particle(ParticleConfiguration config):
-		pressure(config.pressure),density(config.density),
-		friction(config.friction),restitution(config.restitution),
-		mass(config.mass), radius(config.radius),
+		pressure(config.pressure),
+		density(config.density),
+		friction(config.friction),
+		restitution(config.restitution),
+		mass(config.mass),
+		radius(config.radius),
+		position(config.position),
+		velocity(config.velocity),
 		acceleration(config.acceleration),
-		position(config.position),velocity(config.velocity){}
+		gradient(config.gradient){}
 
 		void update(float time);
 		void surfaceCollision(Vector2 normal, float offset);
@@ -54,6 +63,8 @@ typedef struct FluidConfiguration{
 				float radius = 4.0f;
 
 				//Initialisation conditions
+				bool random = true;
+				Vector2 range = {400, 500};
 				Vector2 position = {40.0f,40.0f};
 				Vector2 spacing= {40,40};
 
@@ -99,11 +110,16 @@ class Fluid{
 		
 		Fluid(const FluidConfiguration& config);
 		
+		void reset();
 		void draw(SDL_Renderer* renderer);
 		void update(float time);
+		void particleCollisions();
 
-		float smoothingKernel(float distance);
-		void updateDensities();
+		float kernel(float distance);
+		Vector2 kernelDerivative(Vector2 distance);
+		void updateDensity();
+		void updatePressure();
+		void updateGradient();
 		void updateGrid(); 
 };
 
