@@ -21,6 +21,7 @@ add_executable(${executable}
 	src/input.cpp
 	src/main.cpp
 	src/fluid.cpp
+	src/collisions.cpp
 	src/circle.cpp
 	src/vector2.cpp
 )

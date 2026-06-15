@@ -2,22 +2,33 @@
 #include "init.h"
 
 Fluid::Fluid(const FluidConfiguration& config):
-		radius(config.radius),
+		viscosity(config.viscosity),
 		density(config.density),
+		pressureMultiplier(config.pressureMultiplier),
+		smoothingRadius(config.smoothingRadius),
+
+		radius(config.radius),
 		friction(config.friction),
 		restitution(config.restitution),
+
 		color(config.color),
 		circleMesh({0,0}, config.radius, config.accuracy, config.color),
-		gridDimensions(config.gridSize.x,config.gridSize.y),
-		grid(config.gridSize.x, std::vector< std::vector<int> >(config.gridSize.y, std::vector<int>() )), 
-		gridMappings(config.gridSize.x, std::vector< std::vector <SDL_Point> >(config.gridSize.y, std::vector<SDL_Point>())),
-		vertices(config.dimensions.x * config.dimensions.y * circleMesh.vertices.size(), {.position = {0,0}, .color = config.color})
-		{ 
-			Vector2 cell;
-			cell +=  config.spacing + radius * 2;
+		vertices(config.dimensions.x * config.dimensions.y * circleMesh.vertices.size(), {.position = {0,0}, .color = config.color}),
 
-			int index = 0;
-	Particle particle;
+		gridDimensions(config.gridSize.x,config.gridSize.y),
+		gridMappings(config.gridSize.x, std::vector< std::vector <SDL_Point> >(config.gridSize.y, std::vector<SDL_Point>())),
+		grid(config.gridSize.x, std::vector< std::vector<int> >(config.gridSize.y, std::vector<int>() ))
+{ 
+	Vector2 cell;
+	cell +=  config.spacing + radius * 2;
+
+	int index = 0;
+	Particle particle({
+			.friction = friction,
+			.restitution = restitution,
+			.radius = radius,
+			});
+
 	for(int i = 0; i < config.dimensions.x; i++){
 		for(int j = 0; j < config.dimensions.y; j++){
 			Vector2 coord(i, j);
@@ -54,6 +65,11 @@ Fluid::Fluid(const FluidConfiguration& config):
 	}
 }
 
+void Particle::update(float time){
+	velocity += acceleration * time;
+	position += velocity * time;
+}
+
 void Fluid::draw(SDL_Renderer* renderer){
 
 		int index = 0;
@@ -77,131 +93,22 @@ void Fluid::draw(SDL_Renderer* renderer){
 
 };
 
-void particleCollision(
-		Particle& A, Particle& B, 
-		float radius, float restitution=0.6, 
-		float friction=0.1){
-	Vector2 displacement = A.position - B.position;
-	if(displacement.x == 0.0f && displacement.y != 0.0f){
-		float jitter = (SDL_randf() - 0.5f) * 0.2f;
-		displacement.x += jitter;
-	}
-	float distance = displacement.magnitude();
-	
-	if(distance == 0.0f){
-		displacement = {
-			(SDL_randf() - 0.5f),
-			(SDL_randf() - 0.5f)
-		};
-		distance = displacement.magnitude();
-	}
-	float difference = distance - radius * 2;
-	if( difference < 0 ){
-		Vector2 normal = displacement/distance;
-		Vector2 tangent = { normal.y, -normal.x };
-		
-		Vector2 pushVector = normal * (-difference/2.0f);
-		A.position += pushVector;
-		B.position -= pushVector;
-		
-		Vector2 relative_Velocity = A.velocity - B.velocity;
-
-		float normalComponent = relative_Velocity.dot(normal);
-		float tangentComponent = relative_Velocity.dot(tangent);
-
-		//Sliding Friction
-		Vector2 impulse =  tangent * ( tangentComponent/2.0f) * friction;
-
-		//Elastic Collision
-		impulse += (normal * normalComponent) * restitution;
-
-		if(normalComponent > 0)
-			return;
-
-		A.velocity -= impulse;
-		B.velocity += impulse;
-	}
-}
-
-void Fluid::gridCollisions(){
-	for(int i = 0; i < gridDimensions.x;i++)
-		for(int j = 0; j < gridDimensions.y;j++)
-			for(auto& A_id: grid[i][j])
-				for (auto& neighbors: gridMappings[i][j])
-					for(auto& B_id: grid[neighbors.x][neighbors.y]){
-						if(A_id == B_id)
-							continue;
-						particleCollision(
-								particles[A_id], particles[B_id], 
-								radius,restitution, friction);
-					}
-}
-
-//NOTE! The value of offset must be relative to the direction of the normal
-//Normal must be a unit vector
-void wallCollision(
-		Particle& particle, float radius, 
-		Vector2 normal, float offset, 
-		float restitution, float friction){
-
-	Vector2 tangent = { normal.y, -normal.x};
-	float distance = particle.position.dot(normal) - offset;
-	float normalComponent = particle.velocity.dot(normal); //Speed in the direction of the wall
-	float overlap = distance - radius;
-
-	if(normalComponent < 0 && overlap <= 0) {
-		float newNormalComponent = -normalComponent * restitution;
-
-		float tangentComponent = particle.velocity.dot(tangent);
-		float newTangentComponent = tangentComponent * (1-friction);
-
-		particle.velocity = (normal * newNormalComponent) + (tangent * newTangentComponent );
-		particle.position -= normal * overlap; }
-}
-
-void windowEdge_Collisions(
-		Particle& particle, float radius,
-		float restitution = 1, float friction = 0.01){
-	auto wallBound = [&particle,radius,restitution,friction](Vector2 normal,float offset){
-		wallCollision(particle, radius, normal, offset, restitution, friction);
-	};
-
-	// Left wall
-	wallBound({1,0},0);
-	
-    // Top Wall
-	wallBound({0,1},0);
-	
-	//Right Wall
-	wallBound( {-1,0}, -static_cast<float>(WINDOW_INFO.size.x));
-
-	//Bottom Wall
-	wallBound( {0,-1}, -static_cast<float>(WINDOW_INFO.size.y));
-}
-
-void Fluid::collisions(){
-
-	auto wallBound = [this](Particle& particle){
-		windowEdge_Collisions(particle, radius, restitution, friction);
-	};
-	pass(wallBound);
-	gridCollisions();
-}
-
 int clamp(int x, int min, int max){
 	return std::max( std::min(x, max), min);
 }
 
-void Fluid::update(float time){
+void Fluid::updateGrid(){
 	 //Remove outdated data
 	 for(auto& column: grid){
 		 for(auto& cell: column)
 	 		cell.clear();
 	 }
 
+	 //Consider making the cellSize depend on the smoothing radius
 	 SDL_FPoint cellSize = { 
-		 WINDOW_INFO.size.x/gridDimensions.x, 
-		 WINDOW_INFO.size.y/gridDimensions.y};
+		 WINDOW_INFO.rect.w/gridDimensions.x, 
+		 WINDOW_INFO.rect.h/gridDimensions.y
+	 };
 
 	 for(int i = 0; i < particles.size(); i++){
 	 	Vector2 &position = particles[i].position;
@@ -213,10 +120,24 @@ void Fluid::update(float time){
 	 	grid[cellId.x][cellId.y].push_back(i);
 	 }
 	
-	auto integrate = [time](Particle& particle){ 
-		particle.velocity += particle.acceleration * time;
-		Vector2 displacement = particle.velocity * time;
-		particle.position += displacement;
-	};
-	this->pass(integrate);
+
+}
+
+//We want 1 at 0 and 0 at smoothingRadius
+float Fluid::smoothingKernel(float distance){
+	float value = smoothingRadius - distance;
+	return value;
+}
+
+void Fluid::updateDensities(){
+
+}
+
+void Fluid::update(float time){
+	for(auto &particle: particles){
+		particle.update(time);
+		particle.containerCollision(WINDOW_INFO.rect);
+	}
+	updateGrid();
+
 }

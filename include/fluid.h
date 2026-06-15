@@ -2,27 +2,65 @@
 #include "circle.h"
 #include "vector2.h"
 
-typedef struct Particle{
-	float pressure = 0.0;
-	Vector2    position , 
-			   velocity = {-60, 0}, 
-			   acceleration = {6, 30};
-}Particle;
+typedef struct ParticleConfiguration{
+		float pressure = 0.0,
+			  density = 0.0,
+			  friction = 0.01f,
+			  restitution = 0.99f,
+			  mass = 1.0f,
+			  radius = 3;
+
+		Vector2    position = {0, 0}, 
+				   velocity = {0, 0}, 
+				   acceleration = {0, 30};
+}ParticleConfiguration;
+
+class Particle{
+	public:
+		float pressure,
+			  density,
+			  friction,
+			  restitution,
+			  mass,
+			  radius;
+
+		Vector2    position, 
+				   velocity, 
+				   acceleration;
+
+		Particle(ParticleConfiguration config):
+		pressure(config.pressure),density(config.density),
+		friction(config.friction),restitution(config.restitution),
+		mass(config.mass), radius(config.radius),
+		acceleration(config.acceleration),
+		position(config.position),velocity(config.velocity){}
+
+		void update(float time);
+		void surfaceCollision(Vector2 normal, float offset);
+		void containerCollision(SDL_FRect Rect);
+		void particleCollision(Particle& other);
+};
 
 typedef struct FluidConfiguration{
-				float radius = 4.0f;
+				//Fluid particle details
+				float viscosity = 4.0f;
 				float density = 1.0f;
+				float pressureMultiplier = 20.0f;
+				float smoothingRadius = 10.0f;
+				
+				//Particle collisions details
 				float friction = 0.01;
 				float restitution = 0.99f;
+				float radius = 4.0f;
 
+				//Initialisation conditions
 				Vector2 position = {40.0f,40.0f};
 				Vector2 spacing= {40,40};
 
 				SDL_Point dimensions = {15,15};
 				SDL_Point gridSize = {20, 20};
-
 				int accuracy= 100;
-				SDL_FColor color = {0.30, 0.1, 0.79, 1};//rgba(51, 230, 179, 1) ;
+				SDL_FColor color = {207.0f/255, 51.0f/255, 176.0f/255.0f, 1};//rgba(207, 51, 176, 1)
 }FluidConfiguration;
 
 class Fluid{
@@ -32,32 +70,40 @@ class Fluid{
 		float radius ,
 			  viscosity,
 			  density ,
-			  friction ,
-			  restitution;
+			  friction,
+			  restitution,
+			  pressureMultiplier,
+			  smoothingRadius;
 			            
 		Circle circleMesh;
 		std::vector<int> indices;
 		std::vector<SDL_Vertex> vertices;
-		
-		//This is an attempt to optimise collision checking
 		Vector2 gridDimensions;
 		std::vector< std::vector< std::vector <int>>> grid; 
 		std::vector< std::vector< std::vector <SDL_Point> > > gridMappings;
+
+		//Holy Dog Water
+		template<typename Func>
+			void gridIteration(Func fn){
+				for(int i = 0; i < gridDimensions.x;i++)
+					for(int j = 0; j < gridDimensions.y;j++)
+						for(auto& A_id: grid[i][j])
+							for (auto& neighbors: gridMappings[i][j])
+								for(auto& B_id: grid[neighbors.x][neighbors.y]){
+									if(A_id == B_id)
+										continue;
+									fn(particles[A_id], particles[B_id]);
+								}
+			}
 
 		
 		Fluid(const FluidConfiguration& config);
 		
 		void draw(SDL_Renderer* renderer);
-		void collisions();
-		void gridCollisions();
 		void update(float time);
 
-		//Pass all the particles through a function and do nothing.
-		template<typename Func>
-			void pass(Func fn){
-				for(auto& particle:particles)
-						fn(particle);
-			}
-
+		float smoothingKernel(float distance);
+		void updateDensities();
+		void updateGrid(); 
 };
 

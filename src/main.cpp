@@ -11,7 +11,12 @@
 SDL_Renderer* renderer = NULL;
 SDL_Window* window = NULL;
 
-window_Info WINDOW_INFO = {"Bilewater", {600, 250}, SDL_WINDOW_ALWAYS_ON_TOP};
+window_Info WINDOW_INFO = {
+	.title = "Bilewater",
+	.rect = {.w = 400, .h = 600},
+	.flag =SDL_WINDOW_ALWAYS_ON_TOP
+};
+
 SDL_AppResult APP_STATE = SDL_APP_CONTINUE;
 Uint64 previous = 0;
 Inputs inputs;
@@ -19,10 +24,10 @@ bool firstFrame = true;
 
 //Test fluid
 Fluid water({
-		.radius = 3.0f,
+		.viscosity = 1.0f,
 		.density = 1.0f,
-		.friction = 0.01f,
-		.restitution = 0.99f,
+		.pressureMultiplier = 20.0f,
+		.smoothingRadius = 10.0f,
 
 		.position = {30.0f, 30.0f},
 		.spacing = {20.0f,20.0f},	
@@ -47,8 +52,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]){
 	SDL_CHECK(SDL_Init(SDL_INIT_VIDEO));
 
 	SDL_CHECK(SDL_CreateWindowAndRenderer(
-				WINDOW_INFO.title, WINDOW_INFO.size.x,
-				WINDOW_INFO.size.y, WINDOW_INFO.flag,
+				WINDOW_INFO.title, WINDOW_INFO.rect.w,
+				WINDOW_INFO.rect.y, WINDOW_INFO.flag,
 				&window, &renderer));
 
 	previous = SDL_GetTicksNS();
@@ -56,10 +61,11 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]){
 		SDL_DisplayID displayID = SDL_GetDisplayForWindow(window);
 		const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(displayID);
 		if(mode){
-			WINDOW_INFO.size = {mode->w,mode->h};
+			WINDOW_INFO.rect.w = mode->w;
+			WINDOW_INFO.rect.h = mode->h;
 		}
 	}
-	SDL_Log("%i, %i", WINDOW_INFO.size.x, WINDOW_INFO.size.y);
+	SDL_Log("%f, %f", WINDOW_INFO.rect.w, WINDOW_INFO.rect.h);
 	return APP_STATE;
 }
 
@@ -71,8 +77,8 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 	else if(event->type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED){
 		if(!firstFrame){
 			//FIXME This outputs 1x1 if the window is resized by the SDL_WINDOW_FULLSCREEN flag.
-		WINDOW_INFO.size = {event->window.data1, event->window.data2};
-		SDL_Log("%i, %i", WINDOW_INFO.size.x, WINDOW_INFO.size.y);
+		WINDOW_INFO.rect.w = event->window.data1;
+		WINDOW_INFO.rect.h = event->window.data2;
 	}
 	}
 
@@ -96,7 +102,6 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 		unprocessedTime += delay;
 		while (unprocessedTime >= TIME){
 			for(int i = 0; i < SUBSTEPS; i++){
-				water.collisions();
 				water.update(SUB_TIME);
 			}
 			unprocessedTime -= TIME;
