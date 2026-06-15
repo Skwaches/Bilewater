@@ -81,7 +81,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 }
 
 float unprocessedTime = 0;
-const int SUBSTEPS = 2;
+const int SUBSTEPS = 8;
 const float SUB_TIME = TIME/SUBSTEPS;
 SDL_AppResult SDL_AppIterate(void *appstate){
 		firstFrame = false;//FIXME This is a shitty work around

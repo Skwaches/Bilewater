@@ -138,28 +138,25 @@ void Fluid::gridCollisions(){
 }
 
 //NOTE! The value of offset must be relative to the direction of the normal
+//Normal must be a unit vector
 void wallCollision(
 		Particle& particle, float radius, 
 		Vector2 normal, float offset, 
 		float restitution, float friction){
 
 	Vector2 tangent = { normal.y, -normal.x};
-	float distance = particle.position.dot(normal);
-	distance -= offset;
+	float distance = particle.position.dot(normal) - offset;
 	float normalComponent = particle.velocity.dot(normal); //Speed in the direction of the wall
 	float overlap = distance - radius;
-	if(
-			normalComponent < 0 &&
-			overlap <= 0) 
-	{
-		Vector2 impulse = normal * -normalComponent * restitution;
+
+	if(normalComponent < 0 && overlap <= 0) {
+		float newNormalComponent = -normalComponent * restitution;
 
 		float tangentComponent = particle.velocity.dot(tangent);
-		impulse += tangent * tangentComponent * (1-friction);
+		float newTangentComponent = tangentComponent * (1-friction);
 
-		particle.velocity = impulse; 
-		particle.position += overlap;
-	}
+		particle.velocity = (normal * newNormalComponent) + (tangent * newTangentComponent );
+		particle.position -= normal * overlap; }
 }
 
 void windowEdge_Collisions(

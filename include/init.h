@@ -9,7 +9,7 @@ typedef struct window_Info {
 }window_Info;
 
 extern window_Info WINDOW_INFO;
-#define FPS 300.0f
+#define FPS 60.0f
 #define TIME (1.0f/FPS) //Seconds
 #define SDL_CHECK(expression)\
 	if(!expression){\
