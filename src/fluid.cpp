@@ -9,10 +9,6 @@ Fluid::Fluid(const FluidConfiguration& config):
 		pressureMultiplier(config.pressureMultiplier),
 		smoothingRadius(config.smoothingRadius),
 
-		radius(config.radius),
-		friction(config.friction),
-		restitution(config.restitution),
-
 		color(config.color),
 		circleMesh({0,0}, config.radius, config.accuracy, config.color),
 		vertices(config.dimensions.x * config.dimensions.y * circleMesh.vertices.size(), {.position = {0,0}, .color = config.color}),
@@ -21,13 +17,14 @@ Fluid::Fluid(const FluidConfiguration& config):
 		gridMappings(config.gridSize.x, std::vector< std::vector <SDL_Point> >(config.gridSize.y, std::vector<SDL_Point>())),
 		grid(config.gridSize.x, std::vector< std::vector<int> >(config.gridSize.y, std::vector<int>() ))
 { 
-	Vector2 cell = config.spacing + radius * 2;
+	Vector2 cell = config.spacing + config.radius * 2;
 
 	int index = 0;
 	Particle particle({
-			.friction = friction,
-			.restitution = restitution,
-			.radius = radius,
+			.friction = config.friction,
+			.restitution = config.restitution,
+			.radius = config.radius,
+			.gravity = config.gravity
 			});
 
 	Vector2 offset;
@@ -41,6 +38,7 @@ Fluid::Fluid(const FluidConfiguration& config):
 			}
 
 			particle.position = config.position + offset;
+
 			particles.push_back(particle);
 			int indexOffset = index * circleMesh.vertices.size();
 			for(auto id: circleMesh.indices){
@@ -54,9 +52,9 @@ Fluid::Fluid(const FluidConfiguration& config):
 	for(int i = 0; i < gridDimensions.x; i++){
 		for(int j = 0; j < gridDimensions.y; j++){
 			SDL_Point groups[] = { 
-				{ i-1, j-1 }, { i+0, j-1 }, { i+1, j-1 },
-				{ i-1, j+0 }, { i+0, j+0 }, { i+1, j+0 },
-				{ i-1, j+1 }, { i+0, j+1 }, { i+1, j+1 }
+				  			   { i+1, j-1 },
+				  			   { i+1, j+0 },
+				 { i+0, j+1 }, { i+1, j+1 }
 			};
 			for(auto cellId: groups){
 				if(cellId.x >= 0 && cellId.x < gridDimensions.x &&
@@ -79,31 +77,12 @@ inline float lerp(float a, float b, float t) {
 }
 
 void Fluid::draw(SDL_Renderer* renderer){
-		SDL_FColor high = {0.600f, 0.900f, 1.000f, 1.0f}; // Frothy cyan
-		SDL_FColor low =  {0.000f, 0.400f, 1.000f, 1.0f}; // Deep blue
-		
-		float minDensity = density * 0.8f;
-		float maxDensity = density * 1.5f;
-
-		SDL_FColor cilor;
 		for (size_t i = 0; i < particles.size(); ++i) {
 			int index = i * circleMesh.vertices.size();
-			
-			float t = (particles[i].density - minDensity) / (maxDensity - minDensity);
-			t = std::clamp(t, 0.0f, 1.0f); // FIX 5: Use std::clamp instead of int clamp
-
-			cilor = { 
-				lerp(low.r, high.r, t),
-				lerp(low.g, high.g, t),
-				lerp(low.b, high.b, t),
-				1.0f
-			};
-
 			for (size_t j = 0; j < circleMesh.vertices.size(); ++j) {
 				Vector2& position = particles[i].position;
 				vertices[index+j].position.x = circleMesh.vertices[j].position.x + position.x;
                 vertices[index+j].position.y = circleMesh.vertices[j].position.y + position.y;
-				vertices[index+j].color = cilor;
             }
 		}
 		
@@ -112,6 +91,8 @@ void Fluid::draw(SDL_Renderer* renderer){
 				vertices.data(), vertices.size(),
 				indices.data(), indices.size()
 		);
+		SDL_SetRenderDrawColor( renderer, 255, 0, 0, 255);
+		SDL_RenderRect(renderer,&region);
 };
 
 void Fluid::updateGrid(){
@@ -121,13 +102,14 @@ void Fluid::updateGrid(){
 	 }
 
 	 SDL_FPoint cellSize = { 
-		 WINDOW_INFO.rect.w / gridDimensions.x, 
-		 WINDOW_INFO.rect.h / gridDimensions.y
+		 region.w / gridDimensions.x, 
+		 region.h / gridDimensions.y
 	 };
+	Vector2 topLeft = {region.x,region.y};
 
 	 for(int i = 0; i < particles.size(); i++){
 	 	Vector2 &position = particles[i].position;
-	 	SDL_Point cellId = position / cellSize;
+	 	SDL_Point cellId = (position - topLeft) / cellSize;
 
 		cellId.x = std::clamp(cellId.x, 0, static_cast<int>(gridDimensions.x) - 1);
 		cellId.y = std::clamp(cellId.y, 0, static_cast<int>(gridDimensions.y) - 1);
@@ -212,7 +194,8 @@ void Fluid::focus(float force, float range, Vector2 point, float time){
 			continue;
 		
 		Vector2 direction = displacement/distance;
-		particle.velocity += direction * force * time;
+		float scaledForce = force/(1);
+		particle.velocity += direction * scaledForce* time;
 	}
 }
 
@@ -224,16 +207,41 @@ void Fluid::reset(){
 	}
 }
 
+void Fluid::updateRegion(){
+	region.x = particles[0].position.x - particles[0].radius;
+	region.y = particles[0].position.y - particles[0].radius;
+	region.w = 0;
+	region.h = 0;
+	
+	Vector2 bottomRight = particles[0].position + particles[0].radius;
+
+	for(int i = 1; i < particles.size();i++){
+		Vector2 position = particles[i].position;
+		float radius = particles[i].radius;
+		Vector2 top = position - radius;
+
+		region.x = std::min(region.x, top.x);
+		region.y = std::min(region.y, top.y);
+
+		Vector2 bottom = position + radius; 
+		bottomRight.x = std::max(bottomRight.x,bottom.x);
+		bottomRight.y = std::max(bottomRight.y,bottom.y);
+	}
+	region.w = bottomRight.x - region.x;  
+	region.h = bottomRight.y - region.y;
+}
+
 void Fluid::update(float time){
+	updateRegion();
 	updateGrid();
 
 	reset();
 
-	particleCollisions();
-	updateDensity();
-	updatePressure();
-	updateGradient();
+	// updateDensity();
+	// updatePressure();
+	// updateGradient();
 	
+	particleCollisions();
 	for(auto &particle: particles){
 		particle.update(time);
 		particle.containerCollision(WINDOW_INFO.rect);

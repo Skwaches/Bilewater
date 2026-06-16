@@ -101,3 +101,13 @@ Vector2 Vector2::operator/(const float& other) const{
 	result/=other;
 	return result;
 }
+
+
+bool Vector2::operator==(const Vector2& other)const{
+	return (other.x == x) && (other.y == y); 
+}
+bool Vector2::operator!=(const float& other) const{
+	return !( *this == other);
+}
+	
+

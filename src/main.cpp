@@ -13,8 +13,8 @@ SDL_Window* window = NULL;
 
 window_Info WINDOW_INFO = {
 	.title = "Bilewater",
-	.rect = {.w = 800, .h = 800},
-	.flag = SDL_WINDOW_RESIZABLE
+	.rect = {.w = 400, .h = 400},
+	.flag = SDL_WINDOW_ALWAYS_ON_TOP
 };
 
 SDL_AppResult APP_STATE = SDL_APP_CONTINUE;
@@ -29,18 +29,21 @@ Fluid water({
 		.pressureMultiplier = 3.0f,
 		.smoothingRadius = 20.0f,
 
+		.friction = 0.0f,//Fucked don't touch
+	 	.restitution = 1.f,
 		.radius = 3,
+		.random = true ,
 
-		.random = false,
 		.range =  {WINDOW_INFO.rect.w, WINDOW_INFO.rect.h},
 		.position = {50.0f, 50.0f},
-		.spacing = {10.0f,10.0f},	
+		.spacing = {10.0f,10.0f},
+		.gravity = {0, 3},
 
-		.dimensions	{50,50},	
-		.gridSize = {50, 50},
+		.dimensions	{30,30},	
+		.gridSize = {40, 40},
 
 		.accuracy = 12,
-		.color = {0.0f, 0.4f, 1.0f, 1.0f},
+		.color = {0.896f,0.800f,0.000f,1},
 		});
 
 void render(SDL_Renderer* renderer){
@@ -90,7 +93,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 }
 
 float unprocessedTime = 0;
-const int SUBSTEPS = 1;
+const int SUBSTEPS = 8;
 const float SUB_TIME = TIME/SUBSTEPS;
 SDL_AppResult SDL_AppIterate(void *appstate){
 		firstFrame = false;//FIXME This is a shitty work around
@@ -106,7 +109,7 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 		while (unprocessedTime >= TIME){
 			for(int i = 0; i < SUBSTEPS; i++){
 
-				float force = 500, range= 300;
+				float force = 1000, range= 100;
 				if(inputs.mouseHeld(1))
 					water.focus(force, range, inputs.cursor(), SUB_TIME);
 				else if(inputs.mouseHeld(3))

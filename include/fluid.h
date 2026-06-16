@@ -11,10 +11,9 @@ typedef struct ParticleConfiguration{
 			  radius = 3;
 
 		Vector2    position = {0, 0}, 
-				   velocity = {0, -20}, 
-				   gradient = {0,0},
-				   gravity = {0, 30};
-		;
+				   velocity = {0, 0}, 
+				   gradient = {0,0};
+		const Vector2 	   gravity = {0, 0};
 				   
 }ParticleConfiguration;
 
@@ -29,8 +28,8 @@ class Particle{
 
 		Vector2    position, 
 				   velocity, 
-				   gradient,
-				   gravity;
+				   gradient;
+		const Vector2 gravity;
 
 		Particle(ParticleConfiguration config):
 		pressure(config.pressure),
@@ -67,6 +66,7 @@ typedef struct FluidConfiguration{
 				Vector2 range = {400, 500};
 				Vector2 position = {40.0f,40.0f};
 				Vector2 spacing= {40,40};
+				Vector2 gravity = {0,30};
 
 				SDL_Point dimensions = {15,15};
 				SDL_Point gridSize = {20, 20};
@@ -78,15 +78,13 @@ class Fluid{
 	public:
 		std::vector<Particle> particles;
 		SDL_FColor color;		
-		float radius ,
-			  viscosity,
+		float viscosity,
 			  density ,
-			  friction,
-			  restitution,
 			  pressureMultiplier,
 			  smoothingRadius;
-			            
+				            
 		Circle circleMesh;
+		SDL_FRect region;
 		std::vector<int> indices;
 		std::vector<SDL_Vertex> vertices;
 		Vector2 gridDimensions;
@@ -120,6 +118,7 @@ class Fluid{
 		void updateDensity();
 		void updatePressure();
 		void updateGradient();
+		void updateRegion();
 		void updateGrid(); 
 		void focus(float force, float range, Vector2 point, float time);
 };

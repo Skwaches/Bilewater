@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.2)
-project(bilehaven)
+project(bilehaven LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -24,9 +24,8 @@ add_executable(${executable}
 	src/collisions.cpp
 	src/circle.cpp
 	src/vector2.cpp
+	src/shader.cu
 )
 
 target_include_directories(${executable} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include )
 target_link_libraries(${executable} PRIVATE SDL3::SDL3)
-	
-
