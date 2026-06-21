@@ -1,5 +1,6 @@
-#include "input.h"
+#include "input.hpp"
 
+Inputs inputs;
 void Inputs::newFrame(){
 	pkeys = keys;
 	pmouse = mouse;

@@ -1,15 +1,16 @@
-#include "SDL3/SDL_events.h"
-#include "SDL3/SDL_video.h"
+#include <cstdlib>
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <csignal>
 
-#include "init.h"
-#include "input.h"
-#include "fluid.h"
+#include "init.hpp"
+#include "input.hpp"
+#include "fluid.hpp"
+#include "shader.hpp"
 
-SDL_Renderer* renderer = NULL;
-SDL_Window* window = NULL;
+SDL_Renderer* renderer = nullptr;
+SDL_Window* window = nullptr;
 
 window_Info WINDOW_INFO = {
 	.title = "Bilewater",
@@ -17,43 +18,45 @@ window_Info WINDOW_INFO = {
 	.flag = SDL_WINDOW_ALWAYS_ON_TOP
 };
 
-SDL_AppResult APP_STATE = SDL_APP_CONTINUE;
-Uint64 previous = 0;
-Inputs inputs;
+std::atomic<SDL_AppResult> APP_STATE = SDL_APP_CONTINUE;
+void signalHandler(int signum){
+	static int attempts = 1;
+	if(attempts > 2){
+		SDL_Log("\nMultiple signals received! Force closing...");
+		std::exit(signum);
+	}
+	SDL_Log("\nInterrupt signal %i received: Exiting", signum);
+	APP_STATE = SDL_APP_SUCCESS;
+	attempts++;
+}
+
 bool firstFrame = true;
 
 //Test fluid
 Fluid water({
+		.points = 300,
+		.target_Density = 3.0f,
 		.viscosity = 1.0f,
-		.density = 3.0f,
 		.pressureMultiplier = 3.0f,
 		.smoothingRadius = 20.0f,
+		.radius = 4.0f,
 
-		.friction = 0.0f,//Fucked don't touch
-	 	.restitution = 1.f,
-		.radius = 3,
 		.random = true ,
 
-		.range =  {WINDOW_INFO.rect.w, WINDOW_INFO.rect.h},
-		.position = {50.0f, 50.0f},
 		.spacing = {10.0f,10.0f},
 		.gravity = {0, 3},
-
-		.dimensions	{30,30},	
-		.gridSize = {40, 40},
-
-		.accuracy = 12,
-		.color = {0.896f,0.800f,0.000f,1},
+		.region = WINDOW_INFO.rect,
 		});
 
 void render(SDL_Renderer* renderer){
 	SDL_CHECK(SDL_SetRenderDrawColor(renderer,0,0,0,1));
 	SDL_CHECK(SDL_RenderClear(renderer));
-	water.draw(renderer);
+	water.drawCPU(renderer);
 	SDL_CHECK(SDL_RenderPresent(renderer));
 }
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]){
+	std::signal(SIGINT, signalHandler);
 	SDL_SetAppMetadata("Bilewater", "1.0", "Fluid simulation");
 
 	SDL_CHECK(SDL_Init(SDL_INIT_VIDEO));
@@ -63,7 +66,6 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]){
 				WINDOW_INFO.rect.h, WINDOW_INFO.flag,
 				&window, &renderer));
 
-	previous = SDL_GetTicksNS();
 	if(WINDOW_INFO.flag & SDL_WINDOW_FULLSCREEN){
 		SDL_DisplayID displayID = SDL_GetDisplayForWindow(window);
 		const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(displayID);
@@ -72,6 +74,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]){
 			WINDOW_INFO.rect.h = mode->h;
 		}
 	}
+	kernel_Init(water.positions.size(), water.mesh_Vertices);
 	return APP_STATE;
 }
 
@@ -92,39 +95,16 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 	return APP_STATE;
 }
 
-float unprocessedTime = 0;
-const int SUBSTEPS = 8;
-const float SUB_TIME = TIME/SUBSTEPS;
 SDL_AppResult SDL_AppIterate(void *appstate){
 		firstFrame = false;//FIXME This is a shitty work around
-		inputs.newFrame();
-		Uint64 current = SDL_GetTicksNS();
-		float delay = (current - previous)/1000'000'000.0f;
-	 	previous = current;
-
-		if(delay > 0.25f) //Slow down the simulation if it's too slow. 
-			delay = 0.25f;
-
-		unprocessedTime += delay;
-		while (unprocessedTime >= TIME){
-			for(int i = 0; i < SUBSTEPS; i++){
-
-				float force = 1000, range= 100;
-				if(inputs.mouseHeld(1))
-					water.focus(force, range, inputs.cursor(), SUB_TIME);
-				else if(inputs.mouseHeld(3))
-					water.focus(-force, range, inputs.cursor(), SUB_TIME);
-
-				water.update(SUB_TIME);
-			}
-			unprocessedTime -= TIME;
-		}
-		
 		render(renderer);
 		return APP_STATE;
 }
 
 void SDL_AppQuit(void *appstate, SDL_AppResult result) //SDL handles cleanup for renderer and window
 { 
-	
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+	kernel_Close();
+	SDL_Quit();
 }

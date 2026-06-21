@@ -1,5 +1,15 @@
 //I got a bit lost...
-#include "fluid.h"
+#include "vector2.hpp"
+
+class Particle{
+	private:
+		Vector2 position, velocity;
+		float radius,friction,restitution;
+	public:
+	void surfaceCollision(Vector2 normal, float offset);
+	void containerCollision(SDL_FRect container);
+	void particleCollision(Particle& other);
+};
 
 //NOTE! The value of offset must be relative to the direction of the normal
 //Normal must be a unit vector

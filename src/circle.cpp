@@ -1,44 +1,49 @@
-#include "circle.h"
-#include "init.h"
+#include "vector2.hpp"
+#include <vector>
+#include "fluid.hpp"
 
-Circle::Circle(Vector2 center, float radius, int accuracy, SDL_FColor color):
-	radius(radius),
-	center(center)
-{
-	accuracy = std::max(4,accuracy);
+//Circle is counted among the point_num. It is the first item in the vector
+void Circle_Generation(
+		std::vector<SDL_Vertex> &vertices,
+		std::vector<int> &indices,
 
-	SDL_Vertex vertex = {.position = center, .color = color, .tex_coord = {0,0} };
+		float radius,
+		int point_num,
+
+		SDL_FColor center_Color,
+		SDL_FColor outer_Color,
+
+		Vector2 center
+		){
+
+	SDL_Vertex vertex = { .position = center, .color = center_Color};
 	vertices.push_back(vertex);
-	float revolution = SDL_PI_F * 2.0f; 
-	float delta = revolution / accuracy ;
+	vertex.color = outer_Color;
+
+	static const float revolution = SDL_PI_F * 2.0f; 
+
+	point_num = std::max(4, point_num-1);
+	float delta = revolution / point_num ;
 	float angle = 0.0f;
 
-	for(int i = 0; i < accuracy; ++i){
-		vertex.position = { center.x + radius * SDL_cosf(angle), center.y + radius * SDL_sinf(angle) };
+	for(int i = 0; i < point_num; ++i){
+		vertex.position = { 
+			center.x + radius * SDL_cosf(angle), 
+			center.y + radius * SDL_sinf(angle) 
+		};
 		vertices.push_back(vertex);
 		angle += delta;
 	}
-	
+
 	//Generate indices
 	int index = 0;
-	while(index < accuracy ){
+	while(index < point_num ){
 		indices.push_back(0);
 		indices.push_back( index + 1 );
 
-		if( index == accuracy - 1)
-			indices.push_back(1); 
-		else
-			indices.push_back(index + 2); 
-			
+		//Jump over 0 after looping!
+		(index == point_num - 1)?  indices.push_back(1): indices.push_back(index + 2); 
+
 		index++;
 	}
-}
-
-void Circle::draw(SDL_Renderer* renderer){
-	   SDL_CHECK(SDL_RenderGeometry(
-			   renderer, nullptr,
-			   vertices.data(),
-			   vertices.size(),
-			   indices.data(),
-			   indices.size()));
 }

@@ -1,5 +1,5 @@
 
-#include "vector2.h"
+#include "vector2.hpp"
 
 Vector2::Vector2(float x, float y):x(x),y(y){};
 Vector2::Vector2(const float* array):x(array[0]),y(array[1]){};

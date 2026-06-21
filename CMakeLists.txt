@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.2)
-project(bilehaven LANGUAGES CXX)
+project(bilehaven LANGUAGES CXX CUDA)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -15,7 +15,7 @@ else()
 	find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3-shared)
 endif()
 
-set(executable bilehaven)
+set(executable water)
 
 add_executable(${executable}
 	src/input.cpp
@@ -26,6 +26,6 @@ add_executable(${executable}
 	src/vector2.cpp
 	src/shader.cu
 )
-
 target_include_directories(${executable} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include )
+set_property(TARGET ${executable} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_link_libraries(${executable} PRIVATE SDL3::SDL3)

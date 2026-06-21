@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL3/SDL.h>
-extern SDL_AppResult APP_STATE;
+#include <atomic>
+extern std::atomic<SDL_AppResult> APP_STATE;
 
 typedef struct window_Info {
 	const char* title = "Maiden";
