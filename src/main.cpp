@@ -51,7 +51,7 @@ Fluid water({
 void render(SDL_Renderer* renderer){
 	SDL_CHECK(SDL_SetRenderDrawColor(renderer,0,0,0,1));
 	SDL_CHECK(SDL_RenderClear(renderer));
-	water.drawCPU(renderer);
+	water.drawGPU(renderer);
 	SDL_CHECK(SDL_RenderPresent(renderer));
 }
 

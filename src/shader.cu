@@ -45,8 +45,8 @@ __global__ void render_mesh(
 	int workingIndex =  blockDim.x * blockIdx.x + threadIdx.x;
 
 	for(int i = 0; i < esh_size; i++){
-    	vertices[workingIndex].position.x = mesh_vertices[i].position.x + positions[workingIndex].x;
-    	vertices[workingIndex].position.y = mesh_vertices[i].position.y + positions[workingIndex].y;
+    	vertices[workingIndex * esh_size + i].position.x = mesh_vertices[i].position.x + positions[workingIndex].x;
+    	vertices[workingIndex * esh_size + i].position.y = mesh_vertices[i].position.y + positions[workingIndex].y;
 	}
 
 }
