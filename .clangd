@@ -1,0 +1,10 @@
+CompileFlags:
+  Add:
+    - "-I/home/skwaches/Projects/Bilewater/include" 
+    - "-I/home/skwaches/Projects/Bilewater/build/SDL/include-revision" 
+    - "-I/home/skwaches/Projects/.Vendor/SDL/include"
+  Remove:
+    - '-forward-unknown-to-host-compiler' 
+    - '--options-file' 
+    - '--generate-code=arch=compute_75,code=[compute_75,sm_75]'
+    - '-rdc=true' 
