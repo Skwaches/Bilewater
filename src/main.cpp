@@ -12,7 +12,7 @@ SDL_Renderer *renderer = NULL;
 SDL_Window *window = NULL;
 
 window_Info WINDOW_INFO = {.title = "Bilewater",
-                           .rect = {.w = 500, .h = 250},
+                           .rect = {.w = 500, .h = 300},
                            .flag = SDL_WINDOW_ALWAYS_ON_TOP};
 
 SDL_AppResult APP_STATE = SDL_APP_CONTINUE;
@@ -29,16 +29,16 @@ Fluid water({
 
     .radius = 3,
 
-    .random = false,
+    .random = true,
     .range = {WINDOW_INFO.rect.w, WINDOW_INFO.rect.h},
-    .position = {50.0f, 50.0f},
+    .position = {0.0f, 0.0f},
     .spacing = {10.0f, 10.0f},
 
-    .dimensions{50, 50},
-    .gridSize = {50, 50},
+    .dimensions = {40, 40},
+    .gridSize = {60, 60},
 
-    .accuracy = 12,
-    .color = {0.0f, 0.4f, 1.0f, 1.0f},
+    .accuracy = 4,
+    .color = {0.900f, 0.400f, 0.400f, 1.0f},
 });
 
 void render(SDL_Renderer *renderer) {
