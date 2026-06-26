@@ -103,7 +103,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   while (unprocessedTime >= TIME) {
     for (int i = 0; i < SUBSTEPS; i++) {
 
-      float force = 900, range = 10;
+      float force = 900, range = 200;
       if (inputs.mouseHeld(1))
         water.focus(force, range, inputs.cursor(), SUB_TIME);
       else if (inputs.mouseHeld(3))
