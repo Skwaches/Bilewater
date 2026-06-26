@@ -35,7 +35,7 @@ Fluid water({
     .spacing = {10.0f, 10.0f},
 
     .dimensions = {40, 40},
-    .gridSize = {60, 60},
+    .gridSize = {100, 100},
 
     .accuracy = 4,
     .color = {0.900f, 0.400f, 0.400f, 1.0f},
@@ -103,7 +103,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   while (unprocessedTime >= TIME) {
     for (int i = 0; i < SUBSTEPS; i++) {
 
-      float force = 400, range = 100;
+      float force = 900, range = 10;
       if (inputs.mouseHeld(1))
         water.focus(force, range, inputs.cursor(), SUB_TIME);
       else if (inputs.mouseHeld(3))
